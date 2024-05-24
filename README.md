@@ -10,7 +10,7 @@ conda create --name ankifier --file enironment.yaml
 
 Set up MongoDB using the instructions [here](https://www.mongodb.com/docs/manual/administration/install-community/) and make sure your Mongo instance is running.
 
-Download the SpaCy models corresponding to the languages you specify in your config, e.g.:
+Download the [SpaCy models](https://spacy.io/models) corresponding to the languages you specify in your config, e.g.:
 ```bash
 python -m spacy download ru_core_news_sm
 ```
