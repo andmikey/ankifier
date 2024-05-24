@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-LANGUAGE=$1
-FILEPATH=$2
+DATABASE=$1 # MongoDB database you're using for Ankifier
+COLLECTION=$2 # Collection for this language
+FILEPATH=$3 # Path to Kaikki export
 
-mongoimport -d ankifier -c $LANGUAGE --file $FILEPATH
+mongoimport -d $DATABASE -c $COLLECTION --file $FILEPATH
