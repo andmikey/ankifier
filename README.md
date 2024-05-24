@@ -1,5 +1,15 @@
 # Ankifier: generating Anki cards for language learning
 
+## Getting started 
+
+Create a new Conda environment from the requirements.txt:
+```bash
+conda create --name ankifier --file requirements.txt
+```
+(this is exported with `conda list -e > requirements.txt` from my development environment). 
+
+Set up MongoDB using the instructions [here](https://www.mongodb.com/docs/manual/administration/install-community/) and make sure your Mongo instance is running.
+
 ## Importing Wiktionary data 
 To retrieve information about individual words (definitions, conjugations/declinations, example usages, etc) we use pre-parsed Wiktionary extracts. 
 
@@ -8,3 +18,19 @@ Download a Wiktionary dump from [Kaikki](https://kaikki.org/dictionary/) for you
 ```bash
 bash import_data.sh ankifier ru_wiktionary kaikki.org-dictionary-Russian.json
 ```
+
+## Processing input files
+The input to this program is a CSV, where each row in the CSV contains either:
+1. A word or short phrase. 
+2. A longer phrase or sentence. 
+
+To process each entry:
+- If it's a word:
+    - Lemmatize it.
+    - Look it up in the Wiktionary entries and create a new card for the word. 
+    - (Optional) Create cards for any examples in the Wiktionary entry.
+    - (Optional) Create cards for any related words.
+- If it's a phrase:
+    - (Optional) Look the phrase up in Wiktionary and generate a card for it.
+    - For any words in the phrase we've not seen before, generate cards for them as above. 
+    - Generate a card based on the DeepL translation of the phrase.
