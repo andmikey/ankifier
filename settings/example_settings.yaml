@@ -5,7 +5,7 @@ ankifier_config:
 
 # One config for each language you want to generate cards for. 
 language_configs:
-  - russian: # Should match what you pass for 
+  - russian: # Should match what you pass as --language argument
       wiktionary_collection: ru_wiktionary # The collection where you've saved a Wiktionary export using `import_data.sh`. 
       card_collection: ru_cards # The collection where Anki cards for this language should be saved
       word_settings: language_configs/russian.yaml # Language-level config

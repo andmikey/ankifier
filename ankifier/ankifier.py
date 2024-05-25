@@ -46,4 +46,4 @@ def main(config_file: click.File, input_file: click.Path, language: str):
     config = yaml.safe_load(config_file)
 
     ankifier = Ankifier(config)
-    ankifier.parse_file(input_file)
+    ankifier.parse_file(input_file, language)
