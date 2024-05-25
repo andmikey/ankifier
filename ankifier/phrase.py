@@ -1,3 +1,4 @@
+from deepl import Translator
 from typing import List, Tuple
 from spacy import Language
 from pymongo import Database
@@ -12,12 +13,14 @@ class Word:
         self.config = config
     
     def generate_cards(self) -> List[Card]:
+        # Don't generate if derived form
+        # Derived form = contains senses.form_of (see https://kaikki.org/dictionary/All%20languages%20combined/meaning/%D0%B3/%D0%B3%D0%BE/%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8F%D1%89%D0%B8%D0%B9.html)
         pass 
 
 
 class Phrase:
     def __init__(self, phrase: str, config: dict, spacy_pipeline: Language, 
-                 translator, db: Database):
+                 translator: Translator, db: Database):
         self.phrase = phrase 
         self.config = config
         self.spacy = spacy_pipeline
@@ -40,13 +43,14 @@ class Phrase:
         cards: List[Card] = []
 
         # First, try looking the phrase itself up 
-        # If it's a phrase (NOT a derived form of a word etc), add it
-        # TODO look up the phrase in the mongo DB here
+        word = Word(self.phrase, "", self.config) # TODO what POS tag?
+        cards_for_phrase = word.generate_cards()
+        cards.extend(cards_for_phrase)
 
         # Next, look up all the individual (lemmatized) words and generate cards for these
         tokens = self.pre_process_phrase(self.phrase)
         for (lemma, pos, detailed_pos) in tokens:
-            word = Word(lemma, pos, self.config.config)
+            word = Word(lemma, pos, self.config)
             cards_for_lemma = word.generate_cards()
             cards.extend(cards_for_lemma)
 
