@@ -2,13 +2,18 @@
 
 ## Getting started 
 
-Create a new Conda environment from the requirements.txt:
+Create a new Conda environment from the `environment.yml`:
 ```bash
-conda create --name ankifier --file requirements.txt
+conda create --name ankifier --file enironment.yaml
 ```
-(this is exported with `conda list -e > requirements.txt` from my development environment). 
+(this is exported with `conda env export -n ankifier > environment.yml` from my development environment). 
 
 Set up MongoDB using the instructions [here](https://www.mongodb.com/docs/manual/administration/install-community/) and make sure your Mongo instance is running.
+
+Download the [SpaCy models](https://spacy.io/models) corresponding to the languages you specify in your config, e.g.:
+```bash
+python -m spacy download ru_core_news_sm
+```
 
 ## Importing Wiktionary data 
 To retrieve information about individual words (definitions, conjugations/declinations, example usages, etc) we use pre-parsed Wiktionary extracts. 
