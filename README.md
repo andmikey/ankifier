@@ -1,6 +1,6 @@
 # Ankifier: generating Anki cards for language learning
 
-## Getting started 
+## Setting up environment
 
 Create a new Conda environment from the `environment.yml`:
 ```bash
@@ -14,6 +14,13 @@ Download the [SpaCy models](https://spacy.io/models) corresponding to the langua
 ```bash
 python -m spacy download ru_core_news_sm
 ```
+
+## Configuring Ankifier settings
+
+You'll need to define at least two settings files:
+1. An overall Ankifier settings file, described in the [example_settings.yaml](./settings/example_settings.yaml). 
+2. A settings file for each language you wish to process, which specifies how word-level cards are generated from Wiktionary definitions.  
+
 
 ## Importing Wiktionary data 
 To retrieve information about individual words (definitions, conjugations/declinations, example usages, etc) we use pre-parsed Wiktionary extracts. 
