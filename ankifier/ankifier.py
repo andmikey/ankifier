@@ -25,11 +25,11 @@ class Ankifier:
         spacy_pipeline = self.create_spacy_pipeline(language)
         translator = deepl.Translator(self.config.ankifier_config.deepl_api_key)
         # Set up for database queries
-        db = MongoClient()[self.mongodb]
+        coll = MongoClient()[self.mongodb][self.config[language]["wiktionary_collection"]]
 
         with open(input_file, 'r') as f:
             for entry in f:
-                p = Phrase(entry, self.config, spacy_pipeline, translator, db)
+                p = Phrase(entry, self.config, spacy_pipeline, translator, coll)
                 cards = p.generate_cards() 
                 self.cards_to_add.append(cards)
 
