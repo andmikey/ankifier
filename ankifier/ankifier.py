@@ -48,7 +48,8 @@ class Ankifier:
                 cards = p.generate_cards() 
                 self.cards_to_add.extend(cards)
                 # Examples, synonyms, antonyms, related words, etc
-                self.additional_outputs.extend(p.get_additional_outputs())
+                # Print a separator so it's clear which entries came from which phrase
+                self.additional_outputs.extend([f"Generated from {entry.strip()}:"] + p.get_additional_outputs() + ["\n\n"])
 
     def write(self, file, arr):
         with open(file, "w+") as f:
