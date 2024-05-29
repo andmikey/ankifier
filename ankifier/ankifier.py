@@ -24,7 +24,7 @@ class Ankifier:
         nlp = spacy.load(model)
         return nlp
 
-    def parse_file(self, input_file: Path, language: str):
+    def parse_file(self, input_file: Path, language_config_file: Path, language: str):
         spacy_pipeline = self.create_spacy_pipeline(language)
         translator = deepl.Translator(self.config["ankifier_config"]["deepl_api_key"])
 
@@ -39,7 +39,7 @@ class Ankifier:
         coll = client[self.mongodb][self.config["language_configs"][language]["wiktionary_collection"]]
 
         # Open the language-level config 
-        with open(self.config["language_configs"][language]["word_settings"]) as f:
+        with open(language_config_file) as f:
             language_config = yaml.safe_load(f)
 
         with open(input_file, 'r') as f:
@@ -65,11 +65,13 @@ class Ankifier:
 
 @click.command()
 @click.option("--config-file", type=click.Path(exists=True))
+@click.option("--language-config-file", type=click.Path(exists=True))
 @click.option("--input-file", type=click.Path(exists=True))
 @click.option("--output-file", type=click.Path())
 @click.option("--additional-outputs-file", type=click.Path())
 @click.option("--language", type=str)
-def main(config_file: click.File, input_file: click.Path, output_file: click.Path, 
+def main(config_file: click.Path, language_config_file: click.Path,
+         input_file: click.Path, output_file: click.Path, 
          additional_outputs_file: click.Path, language: str):
     logging.basicConfig(level=logging.DEBUG)
 
@@ -77,7 +79,7 @@ def main(config_file: click.File, input_file: click.Path, output_file: click.Pat
         config = yaml.safe_load(f)
 
     ankifier = Ankifier(config)
-    ankifier.parse_file(input_file, language)
+    ankifier.parse_file(input_file, language_config_file, language)
     ankifier.write_out_cards(output_file)
     ankifier.write_out_additionals(additional_outputs_file)
 
