@@ -6,6 +6,7 @@ import yaml
 from pathlib import Path 
 from typing import List 
 from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 
 from card import Card
 from phrase import Phrase
@@ -25,10 +26,17 @@ class Ankifier:
 
     def parse_file(self, input_file: Path, language: str):
         spacy_pipeline = self.create_spacy_pipeline(language)
-        translator = deepl.Translator(self.config.ankifier_config.deepl_api_key)
+        translator = deepl.Translator(self.config["ankifier_config"]["deepl_api_key"])
 
-        # Set up for database queries
-        coll = MongoClient()[self.mongodb][self.config["language_configs"][language]["wiktionary_collection"]]
+        # Set up connection to Mongo for database queries
+        client = MongoClient(serverSelectionTimeoutMS=1000)
+        try:
+            client.is_mongos
+        except ServerSelectionTimeoutError:
+            logging.info("Can't connect to Mongo client. Is it running?")
+            exit()
+        
+        coll = client[self.mongodb][self.config["language_configs"][language]["wiktionary_collection"]]
 
         # Open the language-level config 
         with open(self.config["language_configs"][language]["word_settings"]) as f:
