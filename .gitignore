@@ -1,0 +1,10 @@
+# Testing
+*.json
+*.csv
+*.txt
+
+# Python
+*.pyc
+
+# My *actual* settings files
+settings/settings.yaml

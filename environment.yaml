@@ -84,5 +84,6 @@ dependencies:
   - pip:
       - dawg-python==0.7.2
       - deepl==1.18.0
+      - jq==1.7.0
       - pymorphy3==2.0.1
 prefix: /home/mikey/anaconda3/envs/ankifier

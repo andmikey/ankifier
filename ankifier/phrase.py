@@ -1,33 +1,96 @@
-from deepl import Translator
+import itertools
+import jq
+import logging
 from typing import List, Tuple
 from spacy import Language
-from pymongo import Database
-
 from card import Card
 
 
 class Word:
-    def __init__(self, word: str, pos: str, config: dict):
+    def __init__(self, word: str, pos: str, config: dict, coll):
         self.word = word 
         self.pos = pos
         self.config = config
-    
+        self.coll = coll
+        self.examples = []
+        self.related = []
+
+    def retrieve_config(self, pos):
+        # Return config for this POS 
+        return self.config.get(pos, self.config["default"])
+
+    def retrieve_fields(self, entry, fields):
+        try:
+            res = jq.compile(fields).input_value(entry).all()
+        except ValueError:
+            # No results
+            return None
+        
+        if not res:
+            return None
+        
+        if type(res[0]) is list:
+            # Flatten list-of-lists
+            out = list(itertools.chain(*res))
+        else:
+            out = res
+        
+        return out
+
     def generate_cards(self) -> List[Card]:
-        # Don't generate if derived form
-        # Derived form = contains senses.form_of (see https://kaikki.org/dictionary/All%20languages%20combined/meaning/%D0%B3/%D0%B3%D0%BE/%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D1%8F%D1%89%D0%B8%D0%B9.html)
-        pass 
+        entries = self.coll.find({ 
+                "word": self.word, 
+                "senses.form_of": {"$exists": False} # Skip derived forms
+                },
+                {'_id': 0} # JSON parser can't handle contents of _id field, so don't select it
+            )
+
+        cards_to_output = [] 
+
+        for entry in entries:
+            pos = entry["pos"]
+
+            config = self.retrieve_config(pos)
+            config_front = config["front"]
+            config_back = config["back"]
+            
+            # Generate card just for this word
+            front = ", ".join(self.retrieve_fields(entry, config_front))
+            back = "<br>".join(self.retrieve_fields(entry, config_back))
+            if front is not None and back is not None:
+                card = Card(front, back, pos)
+                cards_to_output.append(card)
+
+            # Optional: choose examples and output to another file
+            examples = self.retrieve_fields(entry, "(.senses[].examples[]?) | (.text, .english) | select(. != null)")
+            if examples is not None:
+                self.examples.extend(examples)
+
+            # Optional: choose related words and output to another file
+            related = self.retrieve_fields(entry, "(.related[]?.word)")
+            if related is not None: 
+                self.related.extend(related)
+            also_related = self.retrieve_fields(entry, "(.senses[] | .synonyms, .antonyms) | select(. != null)[] | .word")
+            if also_related is not None:
+                self.related.extend(also_related)
+
+        # Generate cards for related words
+        return cards_to_output
 
 
 class Phrase:
     def __init__(self, phrase: str, config: dict, spacy_pipeline: Language, 
-                 translator: Translator, db: Database):
+                 translator, coll):
         self.phrase = phrase 
         self.config = config
         self.spacy = spacy_pipeline
         self.translator = translator
-        self.db = db
+        self.coll = coll
+        self.examples = []
+        self.related = []
 
     def pre_process_phrase(self, phrase: str) -> List[Tuple[str, str]]:
+        # Use SpaCy to extract lemmas
         processed = self.spacy(phrase)
 
         tokens = []
@@ -42,22 +105,24 @@ class Phrase:
     def generate_cards(self) -> List[Card]:
         cards: List[Card] = []
 
-        # First, try looking the phrase itself up 
-        word = Word(self.phrase, "", self.config) # TODO what POS tag?
-        cards_for_phrase = word.generate_cards()
-        cards.extend(cards_for_phrase)
-
-        # Next, look up all the individual (lemmatized) words and generate cards for these
+        # Look up all the individual (lemmatized) words and generate cards for these
         tokens = self.pre_process_phrase(self.phrase)
         for (lemma, pos, detailed_pos) in tokens:
-            word = Word(lemma, pos, self.config)
+            word = Word(lemma, pos, self.config, self.coll)
             cards_for_lemma = word.generate_cards()
             cards.extend(cards_for_lemma)
+            self.examples.extend(word.examples)
+            self.related.extend(word.related)
 
-        # Finally, translate the whole thing with DeepL
-        translation = self.translator.translate_text(self.phrase, target_lang="EN")
-        overall_translation = Card(self.phrase, translation)
+        # Translate the whole phrase
+        if len(tokens) > 1:
+            translation = self.translator.translate_text(self.phrase, target_lang="EN")
+            overall_translation = Card(self.phrase, translation, "phrase")
+            cards.append(overall_translation)
 
-        cards.append(overall_translation)
-
+        logging.info(f"Generated {len(cards)} cards for {self.phrase}, " + 
+                     f"{len(self.examples) + len(self.related)} additional cards")
         return cards
+    
+    def get_additional_outputs(self):
+        return self.related + self.examples
