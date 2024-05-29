@@ -11,14 +11,6 @@ from card import Card
 from phrase import Phrase
 
 
-class MockTranslator:
-    def __init__(self):
-        pass 
-
-    def translate_text(self, text, **kwargs):
-        return "translated"
-
-
 class Ankifier:
     def __init__(self, config: dict):
         self.config = config
@@ -33,7 +25,7 @@ class Ankifier:
 
     def parse_file(self, input_file: Path, language: str):
         spacy_pipeline = self.create_spacy_pipeline(language)
-        translator = MockTranslator() # deepl.Translator(self.config.ankifier_config.deepl_api_key)
+        translator = deepl.Translator(self.config.ankifier_config.deepl_api_key)
 
         # Set up for database queries
         coll = MongoClient()[self.mongodb][self.config["language_configs"][language]["wiktionary_collection"]]
