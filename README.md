@@ -61,6 +61,7 @@ There is an example file for Russian in [settings/language_configs](./settings/l
 
 Call Ankifier from the command line with the following arguments:
 - `--config-file`: the configuration file for Ankifier. 
+- `--language-config-file`: the configuration file for the language you're using. 
 - `--input-file`: the vocabulary list to process. Each entry should be on a new line and the entire file should be in one language. 
 - `--output-file`: the file to output Anki cards in plain text format. Each card will be on a new line in the format `front;back;part-of-speech`.  
 - `--additional-outputs-file`: the file to output additional outputs (examples, related words, synonyms, antonyms). These *are not* Anki cards: it's up to you to browse through this file and decide what to discard and what to pass to Ankifier for a second pass. 
