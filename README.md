@@ -4,7 +4,7 @@
 
 Create a new Conda environment from the `environment.yaml`:
 ```bash
-conda create --name ankifier --file enironment.yaml
+conda create --name ankifier --file environment.yaml
 ```
 (this is exported with `conda env export -n ankifier > environment.yaml` from my development environment). 
 
@@ -19,7 +19,19 @@ python -m spacy download ru_core_news_sm
 
 You'll need to define at least two settings files:
 1. An overall Ankifier settings file, described in the [example_settings.yaml](./settings/example_settings.yaml). 
-2. A settings file for each language you wish to process, which specifies how word-level cards are generated from Wiktionary definitions.  
+2. A settings file for each language you wish to process, which specifies how word-level cards are generated from Wiktionary definitions. 
+
+The language-level settings file should have one entry for each part of speech, with a `front` and `back` defined in `jq` syntax. The `default` entry defines what to do if no part-of-speech can be matched.
+
+```yaml
+default:
+  front: .forms[] | select(.tags == ["canonical"]).form
+  back: .senses[].glosses
+
+verb:
+  front: .forms[] | select((.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form
+  back: .senses[].glosses
+```
 
 
 ## Importing Wiktionary data 
@@ -46,3 +58,5 @@ To process each entry:
     - (Optional) Look the phrase up in Wiktionary and generate a card for it.
     - For any words in the phrase we've not seen before, generate cards for them as above. 
     - Generate a card based on the DeepL translation of the phrase.
+
+## Calling Ankifier
