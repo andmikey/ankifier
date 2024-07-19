@@ -55,9 +55,11 @@ class Word:
             config_back = config["back"]
             
             # Generate card just for this word
-            front = ", ".join(self.retrieve_fields(entry, config_front))
-            back = "<br>".join(self.retrieve_fields(entry, config_back))
-            if front is not None and back is not None:
+            front_contents = self.retrieve_fields(entry, config_front)
+            back_contents = self.retrieve_fields(entry, config_back)
+            if front_contents is not None and back_contents is not None:
+                front = ", ".join(front_contents)
+                back = "<br>".join(back_contents)
                 card = Card(front, back, pos)
                 cards_to_output.append(card)
 
@@ -108,6 +110,8 @@ class Phrase:
         # Look up all the individual (lemmatized) words and generate cards for these
         tokens = self.pre_process_phrase(self.phrase)
         for (lemma, pos, detailed_pos) in tokens:
+            if pos == "PROPN":
+                lemma = lemma.capitalize()
             word = Word(lemma, pos, self.config, self.coll)
             cards_for_lemma = word.generate_cards()
             cards.extend(cards_for_lemma)
