@@ -3,8 +3,9 @@ import logging
 from typing import List, Tuple
 
 import jq
-from card import Card
 from spacy import Language
+
+from .card import Card
 
 
 class Word:

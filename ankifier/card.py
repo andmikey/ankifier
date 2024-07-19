@@ -12,3 +12,6 @@ class Card:
 
     def __eq__(self, card):
         return (self.front == card.front) and (self.pos == card.pos)
+
+    def as_tuple(self):
+        return (self.front, self.back, self.pos)
