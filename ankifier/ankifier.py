@@ -73,12 +73,14 @@ with import_cards:
         if clicked:
             with st.spinner("Translating"):
                 cards, additional = utils.parse_df_to_cards(edited_df)
-                st.session_state["generated_cards"] = pd.DataFrame(
+                cards_df = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
-                )
-                st.session_state["additional_outputs"] = pd.DataFrame(
+                ).drop_duplicates()
+                st.session_state["generated_cards"] = cards_df
+                additional_df = pd.DataFrame(
                     additional, columns=["Source", "Entry"]
-                )
+                ).drop_duplicates(subset=["Entry"])
+                st.session_state["additional_outputs"] = additional_df
 
             st.success(
                 'Generated translations! Go to "Edit cards" to see generated cards '
