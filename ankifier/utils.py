@@ -40,24 +40,6 @@ class Word:
         # Return config for this POS
         return self.config.get(pos, self.config["default"])
 
-    def retrieve_fields(self, entry, fields):
-        try:
-            res = jq.compile(fields).input_value(entry).all()
-        except ValueError:
-            # No results
-            return None
-
-        if not res:
-            return None
-
-        if type(res[0]) is list:
-            # Flatten list-of-lists
-            out = list(itertools.chain(*res))
-        else:
-            out = res
-
-        return out
-
     def generate_cards(self) -> List[Card]:
         entries = look_up_word(self.coll, self.word)
 
@@ -71,26 +53,25 @@ class Word:
             config_back = config["back"]
 
             # Generate card just for this word
-            front_contents = self.retrieve_fields(entry, config_front)
-            back_contents = self.retrieve_fields(entry, config_back)
+            front_contents = retrieve_fields(entry, config_front)
+            back_contents = retrieve_fields(entry, config_back)
             if front_contents is not None and back_contents is not None:
-                front = ", ".join(front_contents)
-                back = "<br>".join(back_contents)
+                front = ", ".join([x for x in front_contents if x])
+                back = "<br>".join([x for x in back_contents if x])
                 card = Card(front, back, pos)
                 cards_to_output.append(card)
-
             # Optional: choose examples and output to another file
-            examples = self.retrieve_fields(
+            examples = retrieve_fields(
                 entry, "(.senses[].examples[]?) | (.text, .english) | select(. != null)"
             )
             if examples is not None:
                 self.examples.extend(examples)
 
             # Optional: choose related words and output to another file
-            related = self.retrieve_fields(entry, "(.related[]?.word)")
+            related = retrieve_fields(entry, "(.related[]?.word)")
             if related is not None:
                 self.related.extend(related)
-            also_related = self.retrieve_fields(
+            also_related = retrieve_fields(
                 entry,
                 "(.senses[] | .synonyms, .antonyms) | select(. != null)[] | .word",
             )
@@ -156,7 +137,7 @@ class Phrase:
         return self.related + self.examples
 
 
-def parse_df_to_cards(df):
+def parse_df_to_cards(df, bar):
     # Takes DataFrame where each row is a word/phrase and outputs:
     # 1. Translated cards
     # 2. Additional cards which someone may want to add
@@ -164,7 +145,12 @@ def parse_df_to_cards(df):
     additional_outputs = []
     generated_nothing = []
 
-    for _, row in df.iterrows():
+    total_entries = df.shape[0]
+
+    for idx, row in df.iterrows():
+        progress = min(1, (idx + 1) / total_entries)
+        bar.progress(progress)
+
         entry = row["Word"].strip()
         p = Phrase(
             entry,
@@ -181,7 +167,7 @@ def parse_df_to_cards(df):
         additional_outputs.extend([(entry, out) for out in additional])
 
         if not cards and not additional:
-            generated_nothing.add(entry)
+            generated_nothing.extend([entry])
 
     return cards_to_add, additional_outputs, generated_nothing
 
@@ -197,6 +183,14 @@ def look_up_word(coll, word):
         },  # JSON parser can't handle contents of _id field, so don't select it
     )
 
+
+def retrieve_fields(entry, fields):
+    res = jq.compile(fields).input_value(entry).all()
+    st.write(res)
+    if type(res[0]) is list:
+        res = list(itertools.chain(*res))
+    
+    return [e for e in res if e]
 
 class TestTranslator:
     def translate_text(*args, **kwargs):

@@ -62,6 +62,7 @@ with import_cards:
 
     if data:
         data_df = pd.read_csv(data, sep="|")
+        st.write(f"Found {data_df.shape[0]} entries")
         data_df.columns = ["Word"]
         edited_df = st.data_editor(
             data_df, hide_index=True, num_rows="dynamic", use_container_width=True
@@ -71,9 +72,11 @@ with import_cards:
 
         if clicked:
             with st.spinner("Translating"):
+                bar = st.progress(0)
                 cards, additional, generated_nothing = utils.parse_df_to_cards(
-                    edited_df.drop_duplicates()
+                    edited_df.drop_duplicates(), bar
                 )
+                bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
@@ -84,16 +87,17 @@ with import_cards:
                 ).drop_duplicates(subset=["Entry"])
 
                 st.session_state["generated_nothing"] = pd.DataFrame(
-                    additional, columns=["Source"]
+                    generated_nothing, columns=["Source"]
                 ).drop_duplicates()
 
             st.success(
-                'Generated translations! Go to "Edit cards" to see generated cards '
-                + 'or "Additional outputs" to see related words.'
+                f"Generated: \n{st.session_state['generated_cards'].shape[0]} cards, "
+                + f"{st.session_state['additional_outputs'].shape[0]} related entries.\n"
+                + f"{st.session_state['generated_nothing'].shape[0]} entries did not generate any cards."
             )
 
 with edit_cards:
-    choice = st.radio("", ["Use import", "Upload existing file"])
+    choice = st.radio("Choose an option:", ["Use import", "Upload existing file"])
     if choice == "Use import":
         if "generated_cards" in st.session_state:
             cards = st.session_state["generated_cards"]
@@ -115,12 +119,32 @@ with edit_cards:
             )
 
 with look_up_cards:
-    search = st.text_input("Enter word to look up")
+    search = st.text_input("Enter word to look up", key="lookup")
 
     if search:
         output = utils.look_up_word(st.session_state["mongo_coll"], search)
         for entry in output:
-            st.json(entry)
+            pos = entry["pos"]
+            fields = st.session_state["language_config"].get(
+                entry["pos"], st.session_state["language_config"]["default"]
+            )
+            st.write("Word has part of speech:")
+            st.write(pos)
+            st.write("Your jq filter is: ")
+            st.write(fields)
+            st.write("With your jq filter:")
+            st.write("Front: ")
+            st.write(utils.retrieve_fields(entry, fields["front"]))
+            st.write("Back: ")
+            st.write(utils.retrieve_fields(entry, fields["back"]))
+            custom = st.text_input("Add a custom jq filter: ", key="custom_jq_" + pos)
+            if custom:
+                st.write("With your custom jq filter:")
+                st.write(utils.retrieve_fields(entry, custom))
+
+            st.write("Output JSON:")
+            st.json(entry, expanded=False)
+            st.divider()
 
 with related_cards:
     if "additional_outputs" in st.session_state:
