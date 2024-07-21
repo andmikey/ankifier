@@ -162,6 +162,8 @@ def parse_df_to_cards(df):
     # 2. Additional cards which someone may want to add
     cards_to_add = []
     additional_outputs = []
+    generated_nothing = []
+
     for _, row in df.iterrows():
         entry = row["Word"].strip()
         p = Phrase(
@@ -175,10 +177,13 @@ def parse_df_to_cards(df):
         cards = p.generate_cards()
         cards_to_add.extend(cards)
         # Examples, synonyms, antonyms, related words, etc
-        # Print a separator so it's clear which entries came from which phrase
-        additional_outputs.extend([(entry, out) for out in p.get_additional_outputs()])
+        additional = p.get_additional_outputs()
+        additional_outputs.extend([(entry, out) for out in additional])
 
-    return cards_to_add, additional_outputs
+        if not cards and not additional:
+            generated_nothing.add(entry)
+
+    return cards_to_add, additional_outputs, generated_nothing
 
 
 def look_up_word(coll, word):

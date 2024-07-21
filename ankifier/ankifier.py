@@ -57,7 +57,6 @@ with settings:
                 config["ankifier_config"]["deepl_api_key"]
             )
 
-
 with import_cards:
     data = st.file_uploader("Upload a vocab file:", type=["csv", "txt"])
 
@@ -72,15 +71,21 @@ with import_cards:
 
         if clicked:
             with st.spinner("Translating"):
-                cards, additional = utils.parse_df_to_cards(edited_df.drop_duplicates())
-                cards_df = pd.DataFrame(
+                cards, additional, generated_nothing = utils.parse_df_to_cards(
+                    edited_df.drop_duplicates()
+                )
+
+                st.session_state["generated_cards"] = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
                 ).drop_duplicates()
-                st.session_state["generated_cards"] = cards_df
-                additional_df = pd.DataFrame(
+
+                st.session_state["additional_outputs"] = pd.DataFrame(
                     additional, columns=["Source", "Entry"]
                 ).drop_duplicates(subset=["Entry"])
-                st.session_state["additional_outputs"] = additional_df
+
+                st.session_state["generated_nothing"] = pd.DataFrame(
+                    additional, columns=["Source"]
+                ).drop_duplicates()
 
             st.success(
                 'Generated translations! Go to "Edit cards" to see generated cards '
@@ -123,6 +128,16 @@ with related_cards:
         st.write(f"Generated {cards.shape[0]} additional cards")
         edited_df = st.data_editor(
             cards,
+            hide_index=True,
+            num_rows="dynamic",
+            use_container_width=True,
+        )
+
+    if "generated_nothing" in st.session_state:
+        generated_nothing = st.session_state["generated_nothing"]
+        st.write(f"{generated_nothing.shape[0]} entries did not generate any cards")
+        edited_df = st.data_editor(
+            generated_nothing,
             hide_index=True,
             num_rows="dynamic",
             use_container_width=True,
