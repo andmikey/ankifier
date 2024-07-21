@@ -1,51 +1,15 @@
 default:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
+  front: (.forms[] | select(.tags == ["canonical"]).form) // .word
+  back: try(.senses[].glosses) // .senses[].raw_glosses
   
 adj:
-  front: .forms[] | select(.tags == ["masculine", "nominative"]).form
-  back: .senses[].glosses
-
-adv:
-  front: .word
-  back: .senses[].glosses
-
-conj:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
-
-det:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
-
-intj:
-  front: .forms[] | select(.tags == ["canonical"]).form
+  front: (.forms[] | select(.tags == ["masculine", "nominative"]).form) // .word
   back: .senses[].glosses
 
 noun:
-  front: .forms[] | select(.source == "declension" and ((.tags == ["nominative", "singular"]) or (.tags == ["nominative", "plural"]))).form
-  back: .senses[].glosses
-
-particle:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
-
-phrase:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
-
-prep:
-  front: .word
-  back: .senses[].glosses
-
-prep_phrase:
-  front: .word
-  back: .senses[].glosses
-
-pron:
-  front: .word
+  front: (.forms[] | select(.source == "declension" and ((.tags == ["nominative", "singular"]) or (.tags == ["nominative", "plural"]))).form) // .word
   back: .senses[].glosses
 
 verb:
-  front: .forms[] | select((.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form
+  front: (.forms[] | select((.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form) // .word
   back: .senses[].glosses
