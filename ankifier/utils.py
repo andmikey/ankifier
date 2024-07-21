@@ -46,6 +46,9 @@ class Word:
         cards_to_output = []
 
         for entry in entries:
+            if entry is None:
+                continue
+
             pos = entry["pos"]
 
             config = self.retrieve_config(pos)
@@ -60,6 +63,7 @@ class Word:
                 back = "<br>".join([x for x in back_contents if x])
                 card = Card(front, back, pos)
                 cards_to_output.append(card)
+            
             # Optional: choose examples and output to another file
             examples = retrieve_fields(
                 entry, "(.senses[].examples[]?) | (.text, .english) | select(. != null)"
@@ -185,8 +189,14 @@ def look_up_word(coll, word):
 
 
 def retrieve_fields(entry, fields):
-    res = jq.compile(fields).input_value(entry).all()
-    st.write(res)
+    try:
+        res = jq.compile(fields).input_value(entry).all()
+    except ValueError:
+        return []
+    
+    if not res:
+        return []
+    
     if type(res[0]) is list:
         res = list(itertools.chain(*res))
     

@@ -123,6 +123,10 @@ with look_up_cards:
 
     if search:
         output = utils.look_up_word(st.session_state["mongo_coll"], search)
+
+        # Track how many entries we've seen to generate unique keys for the text_input field
+        i = 0
+
         for entry in output:
             pos = entry["pos"]
             fields = st.session_state["language_config"].get(
@@ -137,7 +141,7 @@ with look_up_cards:
             st.write(utils.retrieve_fields(entry, fields["front"]))
             st.write("Back: ")
             st.write(utils.retrieve_fields(entry, fields["back"]))
-            custom = st.text_input("Add a custom jq filter: ", key="custom_jq_" + pos)
+            custom = st.text_input("Add a custom jq filter: ", key=f"custom_jq_{pos}_{i}")
             if custom:
                 st.write("With your custom jq filter:")
                 st.write(utils.retrieve_fields(entry, custom))
@@ -145,6 +149,7 @@ with look_up_cards:
             st.write("Output JSON:")
             st.json(entry, expanded=False)
             st.divider()
+            i += 1
 
 with related_cards:
     if "additional_outputs" in st.session_state:
