@@ -72,7 +72,7 @@ with import_cards:
 
         if clicked:
             with st.spinner("Translating"):
-                cards, additional = utils.parse_df_to_cards(edited_df)
+                cards, additional = utils.parse_df_to_cards(edited_df.drop_duplicates())
                 cards_df = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
                 ).drop_duplicates()
