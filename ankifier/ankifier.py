@@ -80,15 +80,15 @@ with import_cards:
 
                 st.session_state["generated_cards"] = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
-                ).drop_duplicates()
+                ).drop_duplicates().reset_index()
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
                     additional, columns=["Source", "Entry"]
-                ).drop_duplicates(subset=["Entry"])
+                ).drop_duplicates(subset=["Entry"]).reset_index()
 
                 st.session_state["generated_nothing"] = pd.DataFrame(
                     generated_nothing, columns=["Source"]
-                ).drop_duplicates()
+                ).drop_duplicates().reset_index()
 
             st.success(
                 f"Generated: \n{st.session_state['generated_cards'].shape[0]} cards, "
