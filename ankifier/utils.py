@@ -5,7 +5,26 @@ from typing import List, Tuple
 import jq
 from spacy import Language
 
-from .card import Card
+import streamlit as st
+
+
+class Card:
+    def __init__(self, front: str, back: str, pos: str):
+        self.front = front
+        self.back = back
+        self.pos = pos
+
+    def __str__(self):
+        return f"{self.front}|{self.back}|{self.pos}"
+
+    def __repr__(self):
+        return self.__str__
+
+    def __eq__(self, card):
+        return (self.front == card.front) and (self.pos == card.pos)
+
+    def as_tuple(self):
+        return (self.front, self.back, self.pos)
 
 
 class Word:
@@ -40,15 +59,7 @@ class Word:
         return out
 
     def generate_cards(self) -> List[Card]:
-        entries = self.coll.find(
-            {
-                "word": self.word,
-                "senses.form_of": {"$exists": False},  # Skip derived forms
-            },
-            {
-                "_id": 0
-            },  # JSON parser can't handle contents of _id field, so don't select it
-        )
+        entries = look_up_word(self.coll, self.word)
 
         cards_to_output = []
 
@@ -139,7 +150,49 @@ class Phrase:
             f"Generated {len(cards)} cards for {self.phrase}, "
             + f"{len(self.examples) + len(self.related)} additional cards"
         )
-        return cards
+        return [c.as_tuple() for c in cards]
 
     def get_additional_outputs(self):
         return self.related + self.examples
+
+
+def parse_df_to_cards(df):
+    # Takes DataFrame where each row is a word/phrase and outputs:
+    # 1. Translated cards
+    # 2. Additional cards which someone may want to add
+    cards_to_add = []
+    additional_outputs = []
+    for _, row in df.iterrows():
+        entry = row["Word"].strip()
+        p = Phrase(
+            entry,
+            st.session_state["language_config"],
+            st.session_state["nlp"],
+            st.session_state["translator"],
+            st.session_state["mongo_coll"],
+        )
+
+        cards = p.generate_cards()
+        cards_to_add.extend(cards)
+        # Examples, synonyms, antonyms, related words, etc
+        # Print a separator so it's clear which entries came from which phrase
+        additional_outputs.extend([(entry, out) for out in p.get_additional_outputs()])
+
+    return cards_to_add, additional_outputs
+
+
+def look_up_word(coll, word):
+    return coll.find(
+        {
+            "word": word,
+            "senses.form_of": {"$exists": False},  # Skip derived forms
+        },
+        {
+            "_id": 0
+        },  # JSON parser can't handle contents of _id field, so don't select it
+    )
+
+
+class TestTranslator:
+    def translate_text(*args, **kwargs):
+        return "Test translation"

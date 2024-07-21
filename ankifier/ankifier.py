@@ -1,133 +1,111 @@
-import logging
-from pathlib import Path
-from typing import List
-
-import click
 import deepl
 import pandas as pd
 import spacy
+import utils
 import yaml
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
-from .card import Card
-from .phrase import Phrase
+import streamlit as st
 
+st.set_page_config(page_title="Ankifier")
 
-class TestTranslator:
-    def translate_text(*args, **kwargs):
-        return "Test translation"
+test_mode = st.toggle("Testing mode", value=True)
 
+settings, import_cards, edit_cards, related_cards, look_up_cards = st.tabs(
+    ["Settings", "Import cards", "Edit cards", "Additional outputs", "Look up"]
+)
 
-class Ankifier:
-    def __init__(
-        self,
-        config: dict,
-        language_config_file: Path,
-        language: str,
-        test_mode: bool = False,
-    ):
-        self.config = config
-        self.cards_to_add: List[Card] = []
-        self.additional_outputs: List[str] = []
-        self.mongodb = self.config["ankifier_config"]["mongodb_name"]
-        self.language_config_file = language_config_file
-        self.language = language
-        self.test_mode = test_mode
+with settings:
+    uploaded = st.file_uploader(
+        "Upload settings file", type="yaml", accept_multiple_files=False
+    )
 
-    def create_spacy_pipeline(self, language: str) -> spacy.Language:
-        model = self.config["language_configs"][language]["spacy_model"]
-        nlp = spacy.load(model)
-        return nlp
+    if uploaded:
+        config = yaml.safe_load(uploaded)
+        st.session_state["config"] = config
 
-    def parse_file(self, input_file: Path):
-        contents = pd.read_csv(input_file)
-        self.parse_contents(contents)
+        languages = config["language_configs"].keys()
+        language = st.selectbox("Choose language", languages)
+        st.session_state["language"] = language
 
-    def parse_contents(self, input: pd.DataFrame):
-        spacy_pipeline = self.create_spacy_pipeline(self.language)
-        if self.test_mode:
-            translator = TestTranslator()
-        else:
-            translator = deepl.Translator(
-                self.config["ankifier_config"]["deepl_api_key"]
-            )
-
-        # Set up connection to Mongo for database queries
-        client = MongoClient(serverSelectionTimeoutMS=1000)
-        try:
-            client.is_mongos
-        except ServerSelectionTimeoutError:
-            logging.info("Can't connect to Mongo client. Is it running?")
-            exit()
-
-        coll = client[self.mongodb][
-            self.config["language_configs"][self.language]["wiktionary_collection"]
-        ]
-
-        # Open the language-level config
-        with open(self.language_config_file) as f:
+        # Set up global configs
+        # Retrieve language-level config
+        with open(config["language_configs"][language]["word_settings"]) as f:
             language_config = yaml.safe_load(f)
+        st.session_state["language_config"] = language_config
 
-        for _, row in input.iterrows():
-            entry = row["Word"]
-            p = Phrase(entry.strip(), language_config, spacy_pipeline, translator, coll)
-            cards = p.generate_cards()
-            self.cards_to_add.extend(cards)
-            # Examples, synonyms, antonyms, related words, etc
-            # Print a separator so it's clear which entries came from which phrase
-            self.additional_outputs.extend(
-                [f"Generated from {entry.strip()}:"]
-                + p.get_additional_outputs()
-                + ["\n\n"]
+        # SpaCy
+        spacy_model = config["language_configs"][language]["spacy_model"]
+        st.session_state["nlp"] = spacy.load(spacy_model)
+
+        # Mongo
+        mongo_client = MongoClient(serverSelectionTimeoutMS=1000)
+        try:
+            _ = mongo_client.is_mongos
+        except ServerSelectionTimeoutError:
+            st.warning("Can't connect to Mongo client. Is it running?")
+
+        st.session_state["mongo_coll"] = mongo_client[
+            config["ankifier_config"]["mongodb_name"]
+        ][config["language_configs"][language]["wiktionary_collection"]]
+
+        # Translator
+        if test_mode:
+            st.session_state["translator"] = utils.TestTranslator()
+        else:
+            st.session_state["translator"] = deepl.Translator(
+                config["ankifier_config"]["deepl_api_key"]
             )
 
-    def write(self, file, arr):
-        with open(file, "w+") as f:
-            for item in arr:
-                f.write(f"{item}\n")
 
-    def get_cards_df(self):
-        list_contents = [c.as_tuple() for c in self.cards_to_add]
-        return pd.DataFrame(list_contents, columns=["front", "back", "pos"])
-    
-    def get_additional_outputs_df(self):
-        return pd.DataFrame(self.additional_outputs, columns=["front"])
+with import_cards:
+    data = st.file_uploader("Upload a vocab file:", type=["csv", "txt"])
 
-    def write_out_cards(self, output_file):
-        self.write(output_file, self.cards_to_add)
+    if data:
+        data_df = pd.read_csv(data, sep="|")
+        data_df.columns = ["Word"]
+        edited_df = st.data_editor(
+            data_df, hide_index=True, num_rows="dynamic", use_container_width=True
+        )
 
-    def write_out_additionals(self, output_file):
-        self.write(output_file, self.additional_outputs)
+        clicked = st.button("Generate cards")
 
+        if clicked:
+            with st.spinner("Translating"):
+                cards, additional = utils.parse_df_to_cards(edited_df)
+                st.session_state["generated_cards"] = pd.DataFrame(
+                    cards, columns=["Front", "Back", "Part-of-speech"]
+                )
+                st.session_state["additional_outputs"] = pd.DataFrame(
+                    additional, columns=["Source", "Entry"]
+                )
 
-@click.command()
-@click.option("--config-file", type=click.Path(exists=True))
-@click.option("--language-config-file", type=click.Path(exists=True))
-@click.option("--input-file", type=click.Path(exists=True))
-@click.option("--output-file", type=click.Path())
-@click.option("--additional-outputs-file", type=click.Path())
-@click.option("--language", type=str)
-@click.option("--test-mode", is_flag=True, default=False)
-def main(
-    config_file: click.Path,
-    language_config_file: click.Path,
-    input_file: click.Path,
-    output_file: click.Path,
-    additional_outputs_file: click.Path,
-    language: str,
-    test_mode: bool,
-):
-    logging.basicConfig(level=logging.DEBUG)
+            st.success(
+                'Generated translations! Go to "Edit cards" to see generated cards '
+                + 'or "Additional outputs" to see related words.'
+            )
 
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
+with edit_cards:
+    if "generated_cards" in st.session_state:
+        cards = st.session_state["generated_cards"]
+        st.write(f"Generated {cards.shape[0]} cards")
+        edited_df = st.data_editor(
+            cards, hide_index=True, num_rows="dynamic", use_container_width=True
+        )
 
-    ankifier = Ankifier(config, language_config_file, language, test_mode=test_mode)
-    ankifier.parse_file(input_file)
-    ankifier.write_out_cards(output_file)
-    ankifier.write_out_additionals(additional_outputs_file)
+with look_up_cards:
+    search = st.text_input("Enter word to look up")
 
+    if search:
+        output = utils.look_up_word(st.session_state["mongo_coll"], search)
+        for entry in output:
+            st.json(entry)
 
-if __name__ == "__main__":
-    main()
+with related_cards:
+    if "additional_outputs" in st.session_state:
+        cards = st.session_state["additional_outputs"]
+        st.write(f"Generated {cards.shape[0]} additional cards")
+        edited_df = st.data_editor(
+            cards, hide_index=True, num_rows="dynamic", use_container_width=True
+        )
