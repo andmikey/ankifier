@@ -63,7 +63,7 @@ class Word:
                 back = "<br>".join([x for x in back_contents if x])
                 card = Card(front, back, pos)
                 cards_to_output.append(card)
-            
+
             # Optional: choose examples and output to another file
             examples = retrieve_fields(
                 entry, "(.senses[].examples[]?) | (.text, .english) | select(. != null)"
@@ -193,14 +193,15 @@ def retrieve_fields(entry, fields):
         res = jq.compile(fields).input_value(entry).all()
     except ValueError:
         return []
-    
+
     if not res:
         return []
-    
+
     if type(res[0]) is list:
         res = list(itertools.chain(*res))
-    
+
     return [e for e in res if e]
+
 
 class TestTranslator:
     def translate_text(*args, **kwargs):

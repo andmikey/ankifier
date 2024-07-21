@@ -141,7 +141,9 @@ with look_up_cards:
             st.write(utils.retrieve_fields(entry, fields["front"]))
             st.write("Back: ")
             st.write(utils.retrieve_fields(entry, fields["back"]))
-            custom = st.text_input("Add a custom jq filter: ", key=f"custom_jq_{pos}_{i}")
+            custom = st.text_input(
+                "Add a custom jq filter: ", key=f"custom_jq_{pos}_{i}"
+            )
             if custom:
                 st.write("With your custom jq filter:")
                 st.write(utils.retrieve_fields(entry, custom))
