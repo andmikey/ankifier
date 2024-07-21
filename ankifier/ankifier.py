@@ -1,12 +1,11 @@
 import deepl
 import pandas as pd
 import spacy
+import streamlit as st
 import utils
 import yaml
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
-
-import streamlit as st
 
 st.set_page_config(page_title="Ankifier")
 
@@ -87,12 +86,27 @@ with import_cards:
             )
 
 with edit_cards:
-    if "generated_cards" in st.session_state:
-        cards = st.session_state["generated_cards"]
-        st.write(f"Generated {cards.shape[0]} cards")
-        edited_df = st.data_editor(
-            cards, hide_index=True, num_rows="dynamic", use_container_width=True
-        )
+    choice = st.radio("", ["Use import", "Upload existing file"])
+    if choice == "Use import":
+        if "generated_cards" in st.session_state:
+            cards = st.session_state["generated_cards"]
+            st.write(f"Generated {cards.shape[0]} cards")
+            edited_df = st.data_editor(
+                cards,
+                hide_index=True,
+                num_rows="dynamic",
+                use_container_width=True,
+            )
+    else:
+        data = st.file_uploader("Upload a file to edit:", type=["csv", "txt"])
+
+        if data:
+            data_df = pd.read_csv(data, sep=",")
+            data_df.columns = ["Front", "Back", "Part-of-speech"]
+            edited_df = st.data_editor(
+                data_df, hide_index=True, num_rows="dynamic", use_container_width=True
+            )
+
 
 with look_up_cards:
     search = st.text_input("Enter word to look up")
@@ -107,5 +121,8 @@ with related_cards:
         cards = st.session_state["additional_outputs"]
         st.write(f"Generated {cards.shape[0]} additional cards")
         edited_df = st.data_editor(
-            cards, hide_index=True, num_rows="dynamic", use_container_width=True
+            cards,
+            hide_index=True,
+            num_rows="dynamic",
+            use_container_width=True,
         )
