@@ -109,7 +109,6 @@ with edit_cards:
                 data_df, hide_index=True, num_rows="dynamic", use_container_width=True
             )
 
-
 with look_up_cards:
     search = st.text_input("Enter word to look up")
 
