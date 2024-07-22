@@ -9,7 +9,7 @@ Given an input file, Ankifier uses Wiktionary and DeepL to generate:
 Optionally, for each word card it can also give you an output of related words (incl synonyms, antonyms) and examples from Wiktionary. 
 
 For example, given the input `он говорит по-русски`, Ankifier will generate the following cards:
-- The Wiktionary entries of `он`, `говорю́`, `по`, `русски`
+- The Wiktionary entries of `он`, `говорю`, `по`, `русски`
 - The DeepL translation of `он говорит по-русски` 
 
 ## Setting up 
@@ -20,7 +20,7 @@ conda create --name ankifier --file environment.yaml
 ```
 (this is exported with `conda env export -n ankifier > environment.yaml` from my development environment). 
 
-Set up MongoDB using the instructions [here](https://www.mongodb.com/docs/manual/administration/install-community/) and make sure your Mongo instance is running.
+Set up MongoDB using the instructions [here](https://www.mongodb.com/docs/manual/administration/install-community/) and make sure your Mongo instance is running (`sudo service mongod start`).
 
 ### Set up linguistic tools 
 
@@ -45,24 +45,18 @@ You'll need to define at least two settings files:
 
 The language-level settings file should have one entry for each part of speech, with a `front` and `back` defined in `jq` syntax. The `default` entry defines what to do if no part-of-speech can be matched.
 
-```yaml
-default:
-  front: .forms[] | select(.tags == ["canonical"]).form
-  back: .senses[].glosses
-
-verb:
-  front: .forms[] | select((.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form
-  back: .senses[].glosses
-```
-
 There is an example file for Russian in [settings/language_configs](./settings/language_configs/russian.yaml). 
 
 ## Using Ankifier 
 
-Call Ankifier from the command line with the following arguments:
-- `--config-file`: the configuration file for Ankifier. 
-- `--language-config-file`: the configuration file for the language you're using. 
-- `--input-file`: the vocabulary list to process. Each entry should be on a new line and the entire file should be in one language. 
-- `--output-file`: the file to output Anki cards in plain text format. Each card will be on a new line in the format `front|back|part-of-speech`.  
-- `--additional-outputs-file`: the file to output additional outputs (examples, related words, synonyms, antonyms). These *are not* Anki cards: it's up to you to browse through this file and decide what to discard and what to pass to Ankifier for a second pass. 
-- `--language`: the language for the input file, matching one of the language settings in the config file. 
+Start the streamlit app with `streamlit run ankifier.py`. 
+
+Upload your setings file in the 'Settings' tab, then upload your vocabulary file (one entry per line) in the 'Import cards' tab.
+
+You'll see a text editor that lets you add, delete, and edit entries as desired. Once you're happy, press 'generate cards'. 
+
+The resulting Anki cards are in the 'Edit cards' tab. You can also use this tab to edit previously-generated card sets.
+
+In 'Additional outputs' you'll see related outputs (e.g. example sentences) which were generated but not added to the final list, alongside the entry they were generated from. You'll also see a list of the entries which did not generate any cards.
+
+Finally, in the 'Look up' tab you can look up individual words from Wiktionary and experiment with jq filters on them. This is useful if you want to change your jq filter to cover some specific edge cases. 
