@@ -5,7 +5,7 @@ ankifier_config:
 
 # One config for each language you want to generate cards for. 
 language_configs:
-  - russian: # Should match what you pass as --language argument
-      wiktionary_collection: ru_wiktionary # The collection where you've saved a Wiktionary export using `import_data.sh`. 
-      card_collection: ru_cards # The collection where Anki cards for this language should be saved
-      spacy_model: ru_core_news_sm # SpaCy model for this language (https://spacy.io/models)
+  russian: # Should match what you pass as --language argument
+    wiktionary_collection: ru_wiktionary # The collection where you've saved a Wiktionary export using `import_data.sh`.
+    spacy_model: ru_core_news_sm # SpaCy model for this language (https://spacy.io/models)
+    word_settings: /path/to/file # Absolute path to the YAML file which defines how Wiktionary entries are converted to cards (in json)  
