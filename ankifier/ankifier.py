@@ -61,9 +61,16 @@ with import_cards:
     data = st.file_uploader("Upload a vocab file:", type=["csv", "txt"])
 
     if data:
-        data_df = pd.read_csv(data, sep="|")
+        data_df = pd.read_csv(data, sep="|", header=None)
         st.write(f"Found {data_df.shape[0]} entries")
-        data_df.columns = ["Word"]
+
+        if len(data_df.columns) == 1:
+            # Don't have any translations to deal with
+            data_df.columns = ["Word"]
+            data_df["Translation"] = ""
+        else:
+            data_df.columns = ["Word", "Translation"]
+
         edited_df = st.data_editor(
             data_df, hide_index=True, num_rows="dynamic", use_container_width=True
         )
@@ -74,21 +81,21 @@ with import_cards:
             with st.spinner("Translating"):
                 bar = st.progress(0)
                 cards, additional, generated_nothing = utils.parse_df_to_cards(
-                    edited_df.drop_duplicates(), bar
+                    edited_df.drop_duplicates(ignore_index=True), bar
                 )
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
-                ).drop_duplicates().reset_index()
+                ).drop_duplicates(ignore_index=True)
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
                     additional, columns=["Source", "Entry"]
-                ).drop_duplicates(subset=["Entry"]).reset_index()
+                ).drop_duplicates(subset=["Entry"], ignore_index=True)
 
                 st.session_state["generated_nothing"] = pd.DataFrame(
                     generated_nothing, columns=["Source"]
-                ).drop_duplicates().reset_index()
+                ).drop_duplicates(ignore_index=True)
 
             st.success(
                 f"Generated: \n{st.session_state['generated_cards'].shape[0]} cards, "
