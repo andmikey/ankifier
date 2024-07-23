@@ -61,15 +61,10 @@ with import_cards:
     data = st.file_uploader("Upload a vocab file:", type=["csv", "txt"])
 
     if data:
-        data_df = pd.read_csv(data, sep="|", header=None)
+        data_df = pd.read_csv(
+            data, sep="|", header=None, names=["Word", "Translation"], dtype=str
+        )
         st.write(f"Found {data_df.shape[0]} entries")
-
-        if len(data_df.columns) == 1:
-            # Don't have any translations to deal with
-            data_df.columns = ["Word"]
-            data_df["Translation"] = ""
-        else:
-            data_df.columns = ["Word", "Translation"]
 
         edited_df = st.data_editor(
             data_df, hide_index=True, num_rows="dynamic", use_container_width=True
