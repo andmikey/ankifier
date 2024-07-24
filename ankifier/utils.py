@@ -136,13 +136,13 @@ class Phrase:
 
         # Translate the whole phrase
         if len(tokens) > 1:
-            if self.translation:
+            if self.translation != "":
                 # Already have a translation provided
                 translation = self.translation
             else:
                 # Run through the translator
                 translation = self.translator.translate_text(
-                    self.cleaned_phrase, target_lang="EN"
+                    self.cleaned_phrase, target_lang="EN-GB"
                 )
             overall_translation = Card(self.phrase, translation, "phrase")
             cards.append(overall_translation)

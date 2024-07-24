@@ -64,6 +64,10 @@ with import_cards:
         data_df = pd.read_csv(
             data, sep="|", header=None, names=["Word", "Translation"], dtype=str
         )
+
+        # Force coercion to str
+        data_df["Translation"] = data_df["Translation"].fillna("")
+
         st.write(f"Found {data_df.shape[0]} entries")
 
         edited_df = st.data_editor(
