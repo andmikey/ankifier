@@ -128,7 +128,8 @@ with look_up_cards:
     search = st.text_input("Enter word to look up", key="lookup")
 
     if search:
-        output = utils.look_up_word(st.session_state["mongo_coll"], search)
+        st.write("Searching")
+        output = utils.look_up_word(st.session_state["mongo_coll"], utils.strip_stress_marks(search))
 
         # Track how many entries we've seen to generate unique keys for the text_input field
         i = 0
