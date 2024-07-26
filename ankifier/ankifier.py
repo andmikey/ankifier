@@ -61,9 +61,15 @@ with import_cards:
     data = st.file_uploader("Upload a vocab file:", type=["csv", "txt"])
 
     if data:
-        data_df = pd.read_csv(data, sep="|")
+        data_df = pd.read_csv(
+            data, sep="|", header=None, names=["Word", "Translation"], dtype=str
+        )
+
+        # Force coercion to str
+        data_df["Translation"] = data_df["Translation"].fillna("")
+
         st.write(f"Found {data_df.shape[0]} entries")
-        data_df.columns = ["Word"]
+
         edited_df = st.data_editor(
             data_df, hide_index=True, num_rows="dynamic", use_container_width=True
         )
@@ -74,21 +80,21 @@ with import_cards:
             with st.spinner("Translating"):
                 bar = st.progress(0)
                 cards, additional, generated_nothing = utils.parse_df_to_cards(
-                    edited_df.drop_duplicates(), bar
+                    edited_df.drop_duplicates(ignore_index=True), bar
                 )
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
                     cards, columns=["Front", "Back", "Part-of-speech"]
-                ).drop_duplicates().reset_index()
+                ).drop_duplicates(ignore_index=True)
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
                     additional, columns=["Source", "Entry"]
-                ).drop_duplicates(subset=["Entry"]).reset_index()
+                ).drop_duplicates(subset=["Entry"], ignore_index=True)
 
                 st.session_state["generated_nothing"] = pd.DataFrame(
                     generated_nothing, columns=["Source"]
-                ).drop_duplicates().reset_index()
+                ).drop_duplicates(ignore_index=True)
 
             st.success(
                 f"Generated: \n{st.session_state['generated_cards'].shape[0]} cards, "
@@ -122,7 +128,8 @@ with look_up_cards:
     search = st.text_input("Enter word to look up", key="lookup")
 
     if search:
-        output = utils.look_up_word(st.session_state["mongo_coll"], search)
+        with st.spinner("Searching"):
+            output = utils.look_up_word(st.session_state["mongo_coll"], utils.strip_stress_marks(search))
 
         # Track how many entries we've seen to generate unique keys for the text_input field
         i = 0

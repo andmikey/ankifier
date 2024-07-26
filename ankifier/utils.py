@@ -88,9 +88,18 @@ class Word:
 
 class Phrase:
     def __init__(
-        self, phrase: str, config: dict, spacy_pipeline: Language, translator, coll
+        self,
+        phrase: str,
+        translation: str,
+        config: dict,
+        spacy_pipeline: Language,
+        translator,
+        coll,
     ):
         self.phrase = phrase
+        # For Russian, should be removed for other languages
+        self.cleaned_phrase = strip_stress_marks(phrase)
+        self.translation = translation
         self.config = config
         self.spacy = spacy_pipeline
         self.translator = translator
@@ -115,7 +124,7 @@ class Phrase:
         cards: List[Card] = []
 
         # Look up all the individual (lemmatized) words and generate cards for these
-        tokens = self.pre_process_phrase(self.phrase)
+        tokens = self.pre_process_phrase(self.cleaned_phrase)
         for lemma, pos, detailed_pos in tokens:
             if pos == "PROPN":
                 lemma = lemma.capitalize()
@@ -127,7 +136,14 @@ class Phrase:
 
         # Translate the whole phrase
         if len(tokens) > 1:
-            translation = self.translator.translate_text(self.phrase, target_lang="EN")
+            if self.translation != "":
+                # Already have a translation provided
+                translation = self.translation
+            else:
+                # Run through the translator
+                translation = self.translator.translate_text(
+                    self.cleaned_phrase, target_lang="EN-GB"
+                )
             overall_translation = Card(self.phrase, translation, "phrase")
             cards.append(overall_translation)
 
@@ -154,10 +170,11 @@ def parse_df_to_cards(df, bar):
     for idx, row in df.iterrows():
         progress = min(1, (idx + 1) / total_entries)
         bar.progress(progress)
-
         entry = row["Word"].strip()
+        translation = str(row["Translation"]).strip()
         p = Phrase(
             entry,
+            translation,
             st.session_state["language_config"],
             st.session_state["nlp"],
             st.session_state["translator"],
@@ -201,6 +218,22 @@ def retrieve_fields(entry, fields):
         res = list(itertools.chain(*res))
 
     return [e for e in res if e]
+
+
+def strip_stress_marks(text: str) -> str:
+    # https://www.ojisanseiuchi.com/2022/01/23/stripping-russian-syllabic-stress-marks-in-python/
+    b = text.encode("utf-8")
+    # correct error where latin accented ó is used
+    b = b.replace(b"\xc3\xb3", b"\xd0\xbe")
+    # correct error where latin accented á is used
+    b = b.replace(b"\xc3\xa1", b"\xd0\xb0")
+    # correct error where latin accented é is used
+    b = b.replace(b"\xc3\xa0", b"\xd0\xb5")
+    # correct error where latin accented ý is used
+    b = b.replace(b"\xc3\xbd", b"\xd1\x83")
+    # remove combining diacritical mark
+    b = b.replace(b"\xcc\x81", b"").decode()
+    return b
 
 
 class TestTranslator:
