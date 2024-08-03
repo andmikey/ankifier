@@ -9,13 +9,14 @@ import streamlit as st
 
 
 class Card:
-    def __init__(self, front: str, back: str, pos: str):
+    def __init__(self, front: str, back: str, pos: str, root: str):
         self.front = front
         self.back = back
         self.pos = pos
+        self.root = root
 
     def __str__(self):
-        return f"{self.front}|{self.back}|{self.pos}"
+        return f"{self.front}|{self.back}|{self.pos}|{self.root}"
 
     def __repr__(self):
         return self.__str__
@@ -24,7 +25,7 @@ class Card:
         return (self.front == card.front) and (self.pos == card.pos)
 
     def as_tuple(self):
-        return (self.front, self.back, self.pos)
+        return (self.front, self.back, self.pos, self.root)
 
 
 class Word:
@@ -56,12 +57,13 @@ class Word:
             config_back = config["back"]
 
             # Generate card just for this word
+            root = retrieve_fields(entry, ".word")
             front_contents = retrieve_fields(entry, config_front)
             back_contents = retrieve_fields(entry, config_back)
             if front_contents is not None and back_contents is not None:
                 front = ", ".join([x for x in front_contents if x])
                 back = "<br>".join([x for x in back_contents if x])
-                card = Card(front, back, pos)
+                card = Card(front, back, pos, root)
                 cards_to_output.append(card)
 
             # Optional: choose examples and output to another file
@@ -128,7 +130,7 @@ class Phrase:
         # Translate the whole phrase
         if len(tokens) > 1:
             translation = self.translator.translate_text(self.phrase, target_lang="EN")
-            overall_translation = Card(self.phrase, translation, "phrase")
+            overall_translation = Card(self.phrase, translation, "phrase", self.phrase)
             cards.append(overall_translation)
 
         logging.info(
