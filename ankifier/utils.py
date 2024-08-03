@@ -9,14 +9,14 @@ import streamlit as st
 
 
 class Card:
-    def __init__(self, front: str, back: str, pos: str, root: str):
+    def __init__(self, front: str, back: str, pos: str, base: str):
         self.front = front
         self.back = back
         self.pos = pos
-        self.root = root
+        self.base = base
 
     def __str__(self):
-        return f"{self.front}|{self.back}|{self.pos}|{self.root}"
+        return f"{self.front}|{self.back}|{self.pos}|{self.base}"
 
     def __repr__(self):
         return self.__str__
@@ -25,7 +25,7 @@ class Card:
         return (self.front == card.front) and (self.pos == card.pos)
 
     def as_tuple(self):
-        return (self.front, self.back, self.pos, self.root)
+        return (self.front, self.back, self.pos, self.base)
 
 
 class Word:
@@ -57,13 +57,13 @@ class Word:
             config_back = config["back"]
 
             # Generate card just for this word
-            root = retrieve_fields(entry, ".word")
+            base = retrieve_fields(entry, ".word")
             front_contents = retrieve_fields(entry, config_front)
             back_contents = retrieve_fields(entry, config_back)
             if front_contents is not None and back_contents is not None:
                 front = ", ".join([x for x in front_contents if x])
                 back = "<br>".join([x for x in back_contents if x])
-                card = Card(front, back, pos, root)
+                card = Card(front, back, pos, base)
                 cards_to_output.append(card)
 
             # Optional: choose examples and output to another file

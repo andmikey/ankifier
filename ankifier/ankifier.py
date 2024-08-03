@@ -79,7 +79,7 @@ with import_cards:
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
-                    cards, columns=["Front", "Back", "Part-of-speech", "Root"]
+                    cards, columns=["Front", "Back", "Part-of-speech", "Base form"]
                 ).drop_duplicates().reset_index()
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
