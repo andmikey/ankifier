@@ -11,5 +11,5 @@ noun:
   back: .senses[].glosses
 
 verb:
-  front: (.forms[] | select((.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form) // .word
+  front: (.forms[] | select((.tags == ["canonical"]) or (.tags == ["first-person", "present", "singular"]) or (.tags == ["present", "second-person", "singular"]) or (.tags == ["plural", "present", "third-person"])).form) // .word
   back: .senses[].glosses

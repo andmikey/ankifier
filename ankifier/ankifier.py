@@ -85,7 +85,7 @@ with import_cards:
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
-                    cards, columns=["Front", "Back", "Part-of-speech"]
+                    cards, columns=["Front", "Back", "Part-of-speech", "Base form"]
                 ).drop_duplicates(ignore_index=True)
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
@@ -129,7 +129,9 @@ with look_up_cards:
 
     if search:
         with st.spinner("Searching"):
-            output = utils.look_up_word(st.session_state["mongo_coll"], utils.strip_stress_marks(search))
+            output = utils.look_up_word(
+                st.session_state["mongo_coll"], utils.strip_stress_marks(search)
+            )
 
         # Track how many entries we've seen to generate unique keys for the text_input field
         i = 0
