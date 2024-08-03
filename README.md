@@ -37,6 +37,8 @@ bash import_data.sh ankifier ru_wiktionary kaikki.org-dictionary-Russian.json
 
 Ankifier uses the DeepL API to translate longer phrases into English. Sign up for a free API key on the [DeepL website](https://www.deepl.com/pro/change-plan#developer): this gives you 500,000 characters per month, which should be more than enough!  
 
+### Anki 
+Install AnkiConnect using the instructions [here](https://git.foosoft.net/alex/anki-connect). This stops you adding cards which already exist in Anki. Make sure Anki is running while you use Ankifier. 
 
 ### Settings files
 You'll need to define at least two settings files:

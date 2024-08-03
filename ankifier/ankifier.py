@@ -27,6 +27,7 @@ with settings:
         languages = config["language_configs"].keys()
         language = st.selectbox("Choose language", languages)
         st.session_state["language"] = language
+        st.session_state["language_anki_deck"] = config["language_configs"][language]["anki_deck"]
 
         # Set up global configs
         # Retrieve language-level config

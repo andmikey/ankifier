@@ -1,11 +1,12 @@
 import itertools
+import json
 import logging
+import urllib
 from typing import List, Tuple
 
 import jq
-from spacy import Language
-
 import streamlit as st
+from spacy import Language
 
 
 class Card:
@@ -98,6 +99,7 @@ class Phrase:
         spacy_pipeline: Language,
         translator,
         coll,
+        anki_deck: str,
     ):
         self.phrase = phrase
         # For Russian, should be removed for other languages
@@ -107,6 +109,7 @@ class Phrase:
         self.spacy = spacy_pipeline
         self.translator = translator
         self.coll = coll
+        self.anki_deck = anki_deck
         self.examples = []
         self.related = []
 
@@ -131,24 +134,31 @@ class Phrase:
         for lemma, pos, detailed_pos in tokens:
             if pos == "PROPN":
                 lemma = lemma.capitalize()
-            word = Word(lemma, pos, self.config, self.coll)
-            cards_for_lemma = word.generate_cards()
-            cards.extend(cards_for_lemma)
-            self.examples.extend(word.examples)
-            self.related.extend(word.related)
+
+            # Only generate for words not already in Anki
+            if not self.exists_in_anki(lemma):
+                word = Word(lemma, pos, self.config, self.coll)
+                cards_for_lemma = word.generate_cards()
+                cards.extend(cards_for_lemma)
+                self.examples.extend(word.examples)
+                self.related.extend(word.related)
 
         # Translate the whole phrase
         if len(tokens) > 1:
-            if self.translation != "":
-                # Already have a translation provided
-                translation = self.translation
-            else:
-                # Run through the translator
-                translation = self.translator.translate_text(
-                    self.cleaned_phrase, target_lang="EN-GB"
+            # Only generate for phrases not already in Anki
+            if not self.exists_in_anki(self.cleaned_phrase):
+                if self.translation != "":
+                    # Already have a translation provided
+                    translation = self.translation
+                else:
+                    # Run through the translator
+                    translation = self.translator.translate_text(
+                        self.cleaned_phrase, target_lang="EN-GB"
+                    )
+                overall_translation = Card(
+                    self.phrase, translation, "phrase", strip_stress_marks(self.phrase)
                 )
-            overall_translation = Card(self.phrase, translation, "phrase", strip_stress_marks(self.phrase))
-            cards.append(overall_translation)
+                cards.append(overall_translation)
 
         logging.info(
             f"Generated {len(cards)} cards for {self.phrase}, "
@@ -156,9 +166,36 @@ class Phrase:
         )
         return [c.as_tuple() for c in cards]
 
-    def get_additional_outputs(self):
+    def get_additional_outputs(self) -> List[str]:
         return self.related + self.examples
 
+    def exists_in_anki(self, entry: str) -> bool:
+        search_query = f'deck:{self.anki_deck} "Base form:{entry}"'
+        request = {
+            "action": "findCards",
+            "params": {"query": search_query},
+            "version": 6,
+        }
+
+        request_json = json.dumps(request).encode("utf-8")
+        response = json.load(
+            urllib.request.urlopen(
+                urllib.request.Request("http://127.0.0.1:8765", request_json)
+            )
+        )
+        # Error handling borrowed from https://git.foosoft.net/alex/anki-connect#python
+        if len(response) != 2:
+            raise Exception('Response has an unexpected number of fields')
+        if 'error' not in response:
+            raise Exception('Response is missing required error field')
+        if 'result' not in response:
+            raise Exception('Response is missing required result field')
+        if response['error'] is not None:
+            raise Exception(response['error'])
+        
+        count_matches = len(response["result"])
+        return (count_matches > 0)
+    
 
 def parse_df_to_cards(df, bar):
     # Takes DataFrame where each row is a word/phrase and outputs:
@@ -182,6 +219,7 @@ def parse_df_to_cards(df, bar):
             st.session_state["nlp"],
             st.session_state["translator"],
             st.session_state["mongo_coll"],
+            st.session_state["language_anki_deck"]
         )
 
         cards = p.generate_cards()
