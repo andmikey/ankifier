@@ -63,6 +63,7 @@ class Word:
             if front_contents is not None and back_contents is not None:
                 front = ", ".join([x for x in front_contents if x])
                 back = "<br>".join([x for x in back_contents if x])
+                base = strip_stress_marks("".join([x for x in base]))
                 card = Card(front, back, pos, base)
                 cards_to_output.append(card)
 
@@ -146,7 +147,7 @@ class Phrase:
                 translation = self.translator.translate_text(
                     self.cleaned_phrase, target_lang="EN-GB"
                 )
-            overall_translation = Card(self.phrase, translation, "phrase", self.phrase)
+            overall_translation = Card(self.phrase, translation, "phrase", strip_stress_marks(self.phrase))
             cards.append(overall_translation)
 
         logging.info(
