@@ -27,7 +27,12 @@ with settings:
         languages = config["language_configs"].keys()
         language = st.selectbox("Choose language", languages)
         st.session_state["language"] = language
-        st.session_state["language_anki_deck"] = config["language_configs"][language]["anki_deck"]
+        st.session_state["language_anki_deck"] = config["language_configs"][language][
+            "anki_deck"
+        ]
+        st.session_state["language_anki_card_type"] = config["language_configs"][
+            language
+        ]["card_type"]
 
         # Set up global configs
         # Retrieve language-level config
@@ -120,10 +125,22 @@ with edit_cards:
 
         if data:
             data_df = pd.read_csv(data, sep=",")
-            data_df.columns = ["Front", "Back", "Part-of-speech"]
+            data_df.columns = ["Front", "Back", "Part-of-speech", "Base form"]
             edited_df = st.data_editor(
                 data_df, hide_index=True, num_rows="dynamic", use_container_width=True
             )
+
+    clicked = st.button("Write cards to Anki")
+    if clicked:
+        with st.spinner("Writing to Anki"):
+            response = utils.write_df_to_anki(
+                edited_df,
+                st.session_state["language_anki_deck"],
+                st.session_state["language_anki_card_type"],
+            )
+
+        count_written = edited_df.shape[0] - len(response["error"])
+        st.success(f"Wrote {count_written} cards to Anki")
 
 with look_up_cards:
     search = st.text_input("Enter word to look up", key="lookup")

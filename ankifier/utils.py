@@ -177,26 +177,7 @@ class Phrase:
             "version": 6,
         }
 
-        request_json = json.dumps(request).encode("utf-8")
-        response = json.load(
-            urllib.request.urlopen(
-                urllib.request.Request("http://127.0.0.1:8765", request_json)
-            )
-        )
-        # Error handling borrowed from https://git.foosoft.net/alex/anki-connect#python
-        if len(response) != 2:
-            raise Exception("Response has an unexpected number of fields")
-        if "error" not in response:
-            raise Exception("Response is missing required error field")
-        if "result" not in response:
-            raise Exception("Response is missing required result field")
-        if response["error"] is not None:
-            error_text = (
-                f"Checking whether card exists in Anki raised error: {response['error']}"
-                + "This can happen if Anki is not running or AnkiConnect is not installed."
-            )
-            raise Exception(error_text)
-
+        response = call_ankiconnect(request)
         count_matches = len(response["result"])
         return count_matches > 0
 
@@ -279,6 +260,53 @@ def strip_stress_marks(text: str) -> str:
     # remove combining diacritical mark
     b = b.replace(b"\xcc\x81", b"").decode()
     return b
+
+
+def call_ankiconnect(request):
+    request_json = json.dumps(request).encode("utf-8")
+    response = json.load(
+        urllib.request.urlopen(
+            urllib.request.Request("http://127.0.0.1:8765", request_json)
+        )
+    )
+    # Error handling borrowed from https://git.foosoft.net/alex/anki-connect#python
+    if len(response) != 2:
+        raise Exception("Response has an unexpected number of fields")
+    if "error" not in response:
+        raise Exception("Response is missing required error field")
+    if "result" not in response:
+        raise Exception("Response is missing required result field")
+    if response["error"] is not None:
+        st.write(f"Calling Ankiconnect returned errors: {response['error']}")
+
+    return response
+
+
+def write_df_to_anki(df, deck, card_type):
+    cards_to_export = []
+
+    for _, row in df.iterrows():
+        card = {
+            "deckName": deck,
+            "modelName": card_type,
+            "fields": {
+                "Front": row["Front"],
+                "Back": row["Back"],
+                "Base form": row["Base form"],
+                "Part of speech": row["Part-of-speech"],
+            },
+            "options": {"allowDuplicate": False},
+        }
+        cards_to_export.append(card)
+
+    request = {
+        "action": "addNotes",
+        "version": 6,
+        "params": {"notes": cards_to_export},
+    }
+
+    response = call_ankiconnect(request)
+    return response
 
 
 class TestTranslator:

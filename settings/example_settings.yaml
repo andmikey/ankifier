@@ -7,6 +7,7 @@ ankifier_config:
 language_configs:
   russian: # Should match what you pass as --language argument
     anki_deck: Languages::Russian # Anki deck with the cards for this language
+    card_type: Russian # Anki card type to use for importing cards
     wiktionary_collection: ru_wiktionary # The collection where you've saved a Wiktionary export using `import_data.sh`.
     spacy_model: ru_core_news_sm # SpaCy model for this language (https://spacy.io/models)
     word_settings: /path/to/file # Absolute path to the YAML file which defines how Wiktionary entries are converted to cards (in json)  
