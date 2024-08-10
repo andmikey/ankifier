@@ -185,17 +185,21 @@ class Phrase:
         )
         # Error handling borrowed from https://git.foosoft.net/alex/anki-connect#python
         if len(response) != 2:
-            raise Exception('Response has an unexpected number of fields')
-        if 'error' not in response:
-            raise Exception('Response is missing required error field')
-        if 'result' not in response:
-            raise Exception('Response is missing required result field')
-        if response['error'] is not None:
-            raise Exception(response['error'])
-        
+            raise Exception("Response has an unexpected number of fields")
+        if "error" not in response:
+            raise Exception("Response is missing required error field")
+        if "result" not in response:
+            raise Exception("Response is missing required result field")
+        if response["error"] is not None:
+            error_text = (
+                f"Checking whether card exists in Anki raised error: {response['error']}"
+                + "This can happen if Anki is not running or AnkiConnect is not installed."
+            )
+            raise Exception(error_text)
+
         count_matches = len(response["result"])
-        return (count_matches > 0)
-    
+        return count_matches > 0
+
 
 def parse_df_to_cards(df, bar):
     # Takes DataFrame where each row is a word/phrase and outputs:
@@ -219,7 +223,7 @@ def parse_df_to_cards(df, bar):
             st.session_state["nlp"],
             st.session_state["translator"],
             st.session_state["mongo_coll"],
-            st.session_state["language_anki_deck"]
+            st.session_state["language_anki_deck"],
         )
 
         cards = p.generate_cards()
