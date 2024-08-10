@@ -10,23 +10,24 @@ from spacy import Language
 
 
 class Card:
-    def __init__(self, front: str, back: str, pos: str, base: str):
+    def __init__(self, front: str, back: str, pos: str, base: str, audio_url: str):
         self.front = front
         self.back = back
         self.pos = pos
         self.base = base
+        self.audio = audio_url
 
     def __str__(self):
-        return f"{self.front}|{self.back}|{self.pos}|{self.base}"
+        return f"{self.front}|{self.back}|{self.pos}|{self.base}|{self.audio}"
 
     def __repr__(self):
         return self.__str__
 
     def __eq__(self, card):
-        return (self.front == card.front) and (self.pos == card.pos)
+        return (self.base == card.base) and (self.pos == card.pos)
 
     def as_tuple(self):
-        return (self.front, self.back, self.pos, self.base)
+        return (self.front, self.back, self.pos, self.base, self.audio)
 
 
 class Word:
@@ -59,13 +60,20 @@ class Word:
 
             # Generate card just for this word
             base = retrieve_fields(entry, ".word")
+            audio = retrieve_fields(entry, '.sounds[] | select(.text == "Audio") | .mp3_url')
+            if audio:
+                # Pull just the first sound entry
+                audio_link = audio[0]
+            else:
+                audio_link = "" 
             front_contents = retrieve_fields(entry, config_front)
             back_contents = retrieve_fields(entry, config_back)
+
             if front_contents is not None and back_contents is not None:
                 front = ", ".join([x for x in front_contents if x])
                 back = "<br>".join([x for x in back_contents if x])
                 base = strip_stress_marks("".join([x for x in base]))
-                card = Card(front, back, pos, base)
+                card = Card(front, back, pos, base, audio_link)
                 cards_to_output.append(card)
 
             # Optional: choose examples and output to another file
@@ -156,7 +164,7 @@ class Phrase:
                         self.cleaned_phrase, target_lang="EN-GB"
                     )
                 overall_translation = Card(
-                    self.phrase, translation, "phrase", strip_stress_marks(self.phrase)
+                    self.phrase, translation, "phrase", strip_stress_marks(self.phrase), ""
                 )
                 cards.append(overall_translation)
 
@@ -297,6 +305,16 @@ def write_df_to_anki(df, deck, card_type):
             },
             "options": {"allowDuplicate": False},
         }
+
+        if "Audio link" in row:
+            card["audio"] = [
+                {
+                    "url": row["Audio link"],
+                    "filename": f"{row['Base form']}.mp3",
+                    "fields": ["Front"],
+                }
+            ]
+
         cards_to_export.append(card)
 
     request = {
