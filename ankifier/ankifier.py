@@ -91,7 +91,14 @@ with import_cards:
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
-                    cards, columns=["Front", "Back", "Part-of-speech", "Base form", "Audio link"]
+                    cards,
+                    columns=[
+                        "Front",
+                        "Back",
+                        "Part-of-speech",
+                        "Base form",
+                        "Audio link",
+                    ],
                 ).drop_duplicates(ignore_index=True)
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
@@ -125,7 +132,13 @@ with edit_cards:
 
         if data:
             data_df = pd.read_csv(data, sep=",")
-            data_df.columns = ["Front", "Back", "Part-of-speech", "Base form", "Audio link"]
+            data_df.columns = [
+                "Front",
+                "Back",
+                "Part-of-speech",
+                "Base form",
+                "Audio link",
+            ]
             edited_df = st.data_editor(
                 data_df, hide_index=True, num_rows="dynamic", use_container_width=True
             )
@@ -164,10 +177,46 @@ with look_up_cards:
             st.write("Your jq filter is: ")
             st.write(fields)
             st.write("With your jq filter:")
+            front_contents = utils.retrieve_fields(entry, fields["front"])
+            back_contents = utils.retrieve_fields(entry, fields["back"])
+            audio = utils.get_audio(entry)
+            pos = utils.retrieve_fields(entry, ".pos")[0]
+            base = utils.retrieve_fields(entry, ".word")
+
+            card = utils.create_card_from_contents(
+                front_contents, back_contents, base, pos, audio
+            )
+
             st.write("Front: ")
-            st.write(utils.retrieve_fields(entry, fields["front"]))
+            st.write(front_contents)
             st.write("Back: ")
-            st.write(utils.retrieve_fields(entry, fields["back"]))
+            st.write(back_contents)
+            st.write("Audio field: ")
+            st.write(audio)
+            st.write("Part of speech: ")
+            st.write(pos)
+
+            # Write single card to Anki
+            clicked = st.button("Write card to Anki")
+            if clicked:
+                with st.spinner("Adding to Anki"):
+                    card_contents = {
+                        "Front": card.front,
+                        "Back": card.back,
+                        "Base form": card.base,
+                        "Part-of-speech": card.pos,
+                        "Audio link": card.audio,
+                    }
+                    response = utils.write_card(
+                        st.session_state["language_anki_deck"],
+                        st.session_state["language_anki_card_type"],
+                        card_contents,
+                    )
+                if response["error"]:
+                    st.error(f"Error with {base}, {response['error']}")
+                else:
+                    st.success("Wrote card to Anki")
+
             custom = st.text_input(
                 "Add a custom jq filter: ", key=f"custom_jq_{pos}_{i}"
             )
