@@ -9,6 +9,7 @@ import streamlit as st
 from spacy import Language
 
 
+# TODO refactor
 class Card:
     def __init__(self, front: str, back: str, pos: str, base: str, audio_url: str):
         self.front = front
@@ -60,20 +61,14 @@ class Word:
 
             # Generate card just for this word
             base = retrieve_fields(entry, ".word")
-            audio = retrieve_fields(entry, '.sounds[] | select(.text == "Audio") | .mp3_url')
-            if audio:
-                # Pull just the first sound entry
-                audio_link = audio[0]
-            else:
-                audio_link = "" 
+            audio_link = get_audio_link(entry)
             front_contents = retrieve_fields(entry, config_front)
             back_contents = retrieve_fields(entry, config_back)
 
             if front_contents is not None and back_contents is not None:
-                front = ", ".join([x for x in front_contents if x])
-                back = "<br>".join([x for x in back_contents if x])
-                base = strip_stress_marks("".join([x for x in base]))
-                card = Card(front, back, pos, base, audio_link)
+                card = create_card_from_contents(
+                    front_contents, back_contents, base, pos, audio_link
+                )
                 cards_to_output.append(card)
 
             # Optional: choose examples and output to another file
@@ -164,7 +159,11 @@ class Phrase:
                         self.cleaned_phrase, target_lang="EN-GB"
                     )
                 overall_translation = Card(
-                    self.phrase, translation, "phrase", strip_stress_marks(self.phrase), ""
+                    self.phrase,
+                    translation,
+                    "phrase",
+                    strip_stress_marks(self.phrase),
+                    "",
                 )
                 cards.append(overall_translation)
 
@@ -286,7 +285,7 @@ def call_ankiconnect(request):
         raise Exception("Response is missing required result field")
     if response["error"] is not None:
         msg = f"Calling Ankiconnect returned errors: {response['error']}"
-        # Write to both terminal and streamlit 
+        # Write to both terminal and streamlit
         print(msg)
         st.write(msg)
 
@@ -298,41 +297,61 @@ def write_df_to_anki(df, deck, card_type):
 
     for _, row in df.iterrows():
         st.write(f"Writing {row['Base form']}")
-        card = {
-            "deckName": deck,
-            "modelName": card_type,
-            "fields": {
-                "Front": row["Front"],
-                "Back": row["Back"],
-                "Base form": row["Base form"],
-                "Part of speech": row["Part-of-speech"],
-            },
-            "options": {"allowDuplicate": False},
-        }
-
-        if "Audio link" in row and row["Audio link"]:
-            card["audio"] = [
-                {
-                    "url": row["Audio link"],
-                    "filename": f"{row['Base form']}.mp3",
-                    "fields": ["Audio"],
-                }
-            ]
-
-        request = {
-            "action": "addNote",
-            "version": 6,
-            "params": {"note": card},
-        }
-
-        response = call_ankiconnect(request)
-        if "error" in response:
+        response = write_card(deck, card_type, row)
+        if response["error"]:
             st.write(f"Error with {row['Base form']}, {response['error']}")
             errors.append((row["Base form"], response["error"]))
-
     return errors
+
+
+def write_card(deck, card_type, row):
+    card = {
+        "deckName": deck,
+        "modelName": card_type,
+        "fields": {
+            "Front": row["Front"],
+            "Back": row["Back"],
+            "Base form": row["Base form"],
+            "Part of speech": row["Part-of-speech"],
+        },
+        "options": {"allowDuplicate": False},
+    }
+
+    if row["Audio link"]:
+        card["audio"] = [
+            {
+                "url": row["Audio link"],
+                "filename": f"{row['Base form']}.mp3",
+                "fields": ["Audio"],
+            }
+        ]
+
+    request = {
+        "action": "addNote",
+        "version": 6,
+        "params": {"note": card},
+    }
+
+    return call_ankiconnect(request)
 
 
 class TestTranslator:
     def translate_text(*args, **kwargs):
         return "Test translation"
+
+
+def create_card_from_contents(front_contents, back_contents, base, pos, audio_link):
+    front = ", ".join([x for x in front_contents if x])
+    back = "<br>".join([x for x in back_contents if x])
+    base = strip_stress_marks("".join([x for x in base]))
+    return Card(front, back, pos, base, audio_link)
+
+
+def get_audio(entry):
+    audio = retrieve_fields(entry, '.sounds[] | select(.text == "Audio") | .mp3_url')
+    if audio:
+        # Pull just the first sound entry
+        audio_link = audio[0]
+    else:
+        audio_link = ""
+    return audio_link
