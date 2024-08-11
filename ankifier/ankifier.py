@@ -133,12 +133,12 @@ with edit_cards:
     clicked = st.button("Write cards to Anki")
     if clicked:
         with st.spinner("Writing to Anki"):
-            response = utils.write_df_to_anki(
+            errors = utils.write_df_to_anki(
                 edited_df,
                 st.session_state["language_anki_deck"],
                 st.session_state["language_anki_card_type"],
             )
-        count_errors = 0 if "error" not in response else len(response["error"])
+        count_errors = len(errors)
         count_written = edited_df.shape[0] - count_errors
         st.success(f"Wrote {count_written} cards to Anki")
 

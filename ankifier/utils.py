@@ -294,9 +294,10 @@ def call_ankiconnect(request):
 
 
 def write_df_to_anki(df, deck, card_type):
-    cards_to_export = []
+    errors = []
 
     for _, row in df.iterrows():
+        st.write(f"Writing {row['Base form']}")
         card = {
             "deckName": deck,
             "modelName": card_type,
@@ -309,25 +310,27 @@ def write_df_to_anki(df, deck, card_type):
             "options": {"allowDuplicate": False},
         }
 
-        if "Audio link" in row:
+        if "Audio link" in row and row["Audio link"]:
             card["audio"] = [
                 {
                     "url": row["Audio link"],
                     "filename": f"{row['Base form']}.mp3",
-                    "fields": ["Front"],
+                    "fields": ["Audio"],
                 }
             ]
 
-        cards_to_export.append(card)
+        request = {
+            "action": "addNote",
+            "version": 6,
+            "params": {"note": card},
+        }
 
-    request = {
-        "action": "addNotes",
-        "version": 6,
-        "params": {"notes": cards_to_export},
-    }
+        response = call_ankiconnect(request)
+        if "error" in response:
+            st.write(f"Error with {row['Base form']}, {response['error']}")
+            errors.append((row["Base form"], response["error"]))
 
-    response = call_ankiconnect(request)
-    return response
+    return errors
 
 
 class TestTranslator:
