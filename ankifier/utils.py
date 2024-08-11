@@ -61,7 +61,7 @@ class Word:
 
             # Generate card just for this word
             base = retrieve_fields(entry, ".word")
-            audio_link = get_audio_link(entry)
+            audio_link = get_audio(entry)
             front_contents = retrieve_fields(entry, config_front)
             back_contents = retrieve_fields(entry, config_back)
 
