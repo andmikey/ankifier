@@ -91,7 +91,7 @@ with import_cards:
                 bar.empty()
 
                 st.session_state["generated_cards"] = pd.DataFrame(
-                    cards, columns=["Front", "Back", "Part-of-speech", "Base form"]
+                    cards, columns=["Front", "Back", "Part-of-speech", "Base form", "Audio link"]
                 ).drop_duplicates(ignore_index=True)
 
                 st.session_state["additional_outputs"] = pd.DataFrame(
@@ -125,7 +125,7 @@ with edit_cards:
 
         if data:
             data_df = pd.read_csv(data, sep=",")
-            data_df.columns = ["Front", "Back", "Part-of-speech", "Base form"]
+            data_df.columns = ["Front", "Back", "Part-of-speech", "Base form", "Audio link"]
             edited_df = st.data_editor(
                 data_df, hide_index=True, num_rows="dynamic", use_container_width=True
             )
@@ -138,8 +138,8 @@ with edit_cards:
                 st.session_state["language_anki_deck"],
                 st.session_state["language_anki_card_type"],
             )
-
-        count_written = edited_df.shape[0] - len(response["error"])
+        count_errors = 0 if "error" not in response else len(response["error"])
+        count_written = edited_df.shape[0] - count_errors
         st.success(f"Wrote {count_written} cards to Anki")
 
 with look_up_cards:
