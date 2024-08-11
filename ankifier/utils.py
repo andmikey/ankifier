@@ -285,7 +285,10 @@ def call_ankiconnect(request):
     if "result" not in response:
         raise Exception("Response is missing required result field")
     if response["error"] is not None:
-        st.write(f"Calling Ankiconnect returned errors: {response['error']}")
+        msg = f"Calling Ankiconnect returned errors: {response['error']}"
+        # Write to both terminal and streamlit 
+        print(msg)
+        st.write(msg)
 
     return response
 
